@@ -1,49 +1,53 @@
-/**
- * Claude tool definitions (schemas only — wiring happens in the agent runner).
- */
-export type ToolDefinition = {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+
+export type FlaggedItemUrgency = "high" | "medium";
+
+export type FlagItemsNeedingAttentionToolInput = {
+  flagged_items: Array<{
+    item_id: string;
+    reason: string;
+    urgency: FlaggedItemUrgency;
+    message_to_send: string;
+    notify_role: string;
+  }>;
+  run_summary: string;
 };
 
-export const OPS_AGENT_TOOLS: readonly ToolDefinition[] = [
-  {
-    name: "notify_telegram",
-    description:
-      "Send an operational alert to the Telegram channel configured for the demo.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        targetId: { type: "string" },
-        message: { type: "string" },
+export const FLAG_ITEMS_NEEDING_ATTENTION_TOOL_NAME =
+  "flag_items_needing_attention" as const;
+
+export const flagItemsNeedingAttentionTool: Tool = {
+  name: FLAG_ITEMS_NEEDING_ATTENTION_TOOL_NAME,
+  description:
+    "Flag operational items needing attention and compose Spanish alerts. Always call this tool; return empty `flagged_items` when nothing needs attention.",
+  input_schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      flagged_items: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            item_id: { type: "string" },
+            reason: { type: "string" },
+            urgency: { type: "string", enum: ["high", "medium"] },
+            message_to_send: { type: "string" },
+            notify_role: { type: "string" },
+          },
+          required: [
+            "item_id",
+            "reason",
+            "urgency",
+            "message_to_send",
+            "notify_role",
+          ],
+        },
       },
-      required: ["targetId", "message"],
+      run_summary: { type: "string" },
     },
+    required: ["flagged_items", "run_summary"],
   },
-  {
-    name: "send_email",
-    description: "Send a follow-up email via Resend for an operational item.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        targetId: { type: "string" },
-        subject: { type: "string" },
-        body: { type: "string" },
-      },
-      required: ["targetId", "subject", "body"],
-    },
-  },
-  {
-    name: "log_only",
-    description: "Record a decision without sending external notifications.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        targetId: { type: "string" },
-        note: { type: "string" },
-      },
-      required: ["targetId", "note"],
-    },
-  },
-] as const;
+  strict: true,
+};
