@@ -184,6 +184,7 @@ export async function runAgent(
   const actions: AgentAction[] = parsed.flagged_items.map((item) => ({
     actionType: "telegram",
     targetId: item.item_id,
+    urgency: item.urgency,
     messageSent: item.message_to_send,
     reasoning: item.reason,
   }));

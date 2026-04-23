@@ -1,6 +1,8 @@
 export type AgentAction = {
   actionType: "telegram" | "email" | "log_only";
   targetId: string;
+  /** Urgency from the model tool output; used in notifications. */
+  urgency: "high" | "medium";
   messageSent: string;
   reasoning: string;
 };

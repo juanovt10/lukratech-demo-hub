@@ -1,7 +1,11 @@
+import {
+  dispatchAgentActions,
+  type DispatchResult,
+} from "@/lib/agent/dispatcher";
 import { runAgent } from "@/lib/agent/runner";
+import type { AgentRunResult } from "@/lib/agent/types";
 import { generateSeedData, INDUSTRIES } from "@/lib/industries";
 import { NextResponse } from "next/server";
-import type { AgentRunResult } from "@/lib/agent/types";
 import type { OperationsItem } from "@/types";
 
 type RunRequestBody = {
@@ -60,7 +64,8 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const result: AgentRunResult = await runAgent(industry, snapshot);
-    return NextResponse.json(result);
+    const dispatch: DispatchResult = await dispatchAgentActions(result);
+    return NextResponse.json({ ...result, dispatch });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json<ErrorResponseBody>(
