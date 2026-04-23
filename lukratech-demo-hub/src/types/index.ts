@@ -1,4 +1,8 @@
-export type { AgentAction, AgentRunResult } from "@/lib/agent/types";
+export type {
+  AgentAction,
+  AgentRunResult,
+  DispatchResult,
+} from "@/lib/agent/types";
 export type { IndustryConfig, SeedOperationalItem } from "@/lib/industries/types";
 
 export type OperationsItem = {

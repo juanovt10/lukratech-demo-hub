@@ -15,3 +15,11 @@ export type AgentRunResult = {
   actions: AgentAction[];
   rawClaudeOutput: unknown;
 };
+
+export type DispatchResult = {
+  telegramSent: number;
+  emailSent: boolean;
+  errors: string[];
+  /** Set when the run is persisted to Supabase. */
+  runId?: string;
+};

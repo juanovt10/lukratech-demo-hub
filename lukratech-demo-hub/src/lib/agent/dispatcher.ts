@@ -1,16 +1,13 @@
-import type { AgentRunResult } from "@/lib/agent/types";
+import type { AgentRunResult, DispatchResult } from "@/lib/agent/types";
+import { logAgentRun, isSupabaseServiceRoleConfigured } from "@/lib/integrations/supabase";
 import { sendRunSummaryEmail } from "@/lib/integrations/resend";
 import { sendTelegramMessage } from "@/lib/integrations/telegram";
 
-export type DispatchResult = {
-  telegramSent: number;
-  emailSent: boolean;
-  errors: string[];
-};
+export type { DispatchResult } from "@/lib/agent/types";
 
 /**
  * Dispatch outbound notifications for a completed run. Does not throw; errors
- * are collected in `errors`.
+ * are collected in `errors`. Persists the run to Supabase when the service key is set.
  */
 export async function dispatchAgentActions(
   result: AgentRunResult,
@@ -47,5 +44,20 @@ export async function dispatchAgentActions(
     }
   }
 
-  return { telegramSent, emailSent, errors };
+  const dispatch: DispatchResult = { telegramSent, emailSent, errors };
+
+  if (isSupabaseServiceRoleConfigured()) {
+    try {
+      const runId = await logAgentRun(result, dispatch);
+      dispatch.runId = runId;
+    } catch (err: unknown) {
+      errors.push(
+        err instanceof Error
+          ? `Supabase log failed: ${err.message}`
+          : "Supabase log failed with unknown error",
+      );
+    }
+  }
+
+  return dispatch;
 }

@@ -10,8 +10,8 @@
 - `src/components/ui/` — Shared, mostly headless layout primitives (structure first; visual polish comes later).
 - `src/components/demos/ops-agent/` — Demo-specific UI shells (`IndustrySelector`, `AgentRunStream`, `ActivityLog`).
 - `src/lib/industries/` — Industry registry, per-industry `config`, `seedData`, `prompt`, and `copy` modules. This is the **adaptation layer** for sector-specific language and mock data.
-- `src/lib/agent/` — Agent types, tool schemas, and the execution entrypoint (`runner.ts` is stubbed until integrations are wired).
-- `src/lib/integrations/` — Thin clients/helpers for Supabase (`@supabase/ssr`), Telegram (fetch), Resend, and Sheets credentials.
+- `src/lib/agent/` — Agent types, tool schemas, runner, and notification dispatch (with optional Supabase logging).
+- `src/lib/integrations/` — Supabase (browser/SSR clients, service-role logging, `getRecentRuns`), Telegram (fetch), Resend, and Sheets credentials.
 - `src/types/` — Shared cross-cutting TypeScript types re-exported for convenience.
 - `supabase/migrations/` — SQL migrations for demo persistence (`agent_runs`, `agent_actions`).
 - `src/proxy.ts` — Next.js 16 **proxy** (request boundary hook; replaces `middleware.ts`).
@@ -40,11 +40,26 @@
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token for `sendMessage` calls. |
 | `TELEGRAM_CHAT_ID` | Destination chat for operational alerts. |
 | `RESEND_API_KEY` | Send transactional emails through Resend. |
+| `RESEND_ALERT_EMAIL` | Inbox for the HTML run-summary email. |
 | `GOOGLE_SHEETS_CLIENT_EMAIL` | Service account email for Sheets access. |
 | `GOOGLE_SHEETS_PRIVATE_KEY` | Private key for the service account (escape newlines as needed). |
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | Target spreadsheet ID for integrations. |
 
 Copy `.env.local.example` to `.env.local` and fill values locally; configure the same keys in Vercel for deployment.
+
+## Supabase setup (runs + actions logging)
+
+1. **Create a project** at [supabase.com](https://supabase.com) (new organization or existing → **New project**). Pick a region, set a database password, and wait until the project is healthy.
+2. **Get API keys (Project Settings → API):**
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **anon / public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY` (used for reads, respects RLS)
+   - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY` (server-only; bypasses RLS for inserts — never expose to the browser)
+3. **Run the schema** in the Supabase **SQL Editor** (new query): paste the full contents of `supabase/migrations/001_initial.sql` and run it. This creates `agent_runs` and `agent_actions` with public `SELECT` policies.
+4. **Local env:** copy `.env.local.example` to `.env.local` and set at minimum:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (required for persisting runs after `POST /api/agent/run` dispatches)
+5. **Verify:** run `npx ts-node scripts/test-agent.ts` with env loaded, then open **Table Editor** → confirm new rows in `agent_runs` and `agent_actions`, and open `GET /api/demos/ops-agent/runs` for a JSON array of recent runs (nested actions).
 
 ## Next.js 16 notes
 
